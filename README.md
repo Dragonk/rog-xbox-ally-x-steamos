@@ -1,4 +1,15 @@
-# ROG Ally Audio for Decky Loader
+# ROG Xbox Ally X on SteamOS
+
+Community utilities for the **ASUS ROG Xbox Ally X (RC73XA)** running SteamOS. Real-device tested (SteamOS 3.8.x–3.9.5, BIOS RC73XA.319). Independent project, not affiliated with ASUS, Republic of Gamers, Valve or Dolby.
+
+| Component | Description | Docs |
+| --- | --- | --- |
+| **ROG Ally Audio** (Decky plugin) | Persistent EasyEffects speaker DSP chain with Balanced / Cinema / Loud / Bypass profiles, automatic KDE tray ↔ Gaming Mode handoff, switchable from the Quick Access Menu. | this README, below |
+| **Fingerprint reader FT9769** | Power-button fingerprint sensor working in sudo / polkit / KDE lock screen / Gaming Mode, plus a systemd guard that reinstalls the whole stack from the SteamOS repos after every SteamOS update. | [fingerprint-ft9769/](fingerprint-ft9769/) |
+
+---
+
+## ROG Ally Audio for Decky Loader
 
 [![CI](https://github.com/Dragonk/ROGAllyAudio/actions/workflows/ci.yml/badge.svg)](https://github.com/Dragonk/ROGAllyAudio/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/Dragonk/ROGAllyAudio)](https://github.com/Dragonk/ROGAllyAudio/releases)
