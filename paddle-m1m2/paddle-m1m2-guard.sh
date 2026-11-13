@@ -230,7 +230,7 @@ cmd_status() {
   echo "Release sysext:        $(tr '\n' ' ' < "$EXT_PRIMARY/$EXT_RELEASE_SUB" 2>/dev/null || echo brak)"
   echo "Host VERSION_ID:       $(host_version_id || echo brak) ($OS_RELEASE)"
   echo "Usluga inputplumber:   $(systemctl is-active inputplumber.service 2>/dev/null)"
-  echo "Us\u0142uga guarda:         $([ -f "$UNIT_SERVICE" ] && echo OK || echo "nie zainstalowana (sudo $SELF_PATH install)")"
+  echo "Usługa guarda:         $([ -f "$UNIT_SERVICE" ] && echo OK || echo "nie zainstalowana (sudo $SELF_PATH install)")"
   echo "Timer:                  $([ -f "$UNIT_TIMER" ] && echo OK || echo BRAK)"
   echo "Log:                    $LOG_FILE"
 }
