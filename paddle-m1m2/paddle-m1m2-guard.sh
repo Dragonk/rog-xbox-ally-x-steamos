@@ -1,35 +1,35 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  paddle-m1m2-guard: straznik tylnych przyciskow (paddles M1/M2) na SteamOS
-#  Urzadzenie: ASUS ROG Xbox Ally X (RC73XA)
+#  paddle-m1m2-guard: strażnik tylnych przycisków (paddles M1/M2) na SteamOS
+#  Urządzenie: ASUS ROG Xbox Ally X (RC73XA)
 #
-#  Paddle M1/M2 potrzebuj InputPlumbera >= 0.79 (pierwsza wersja z mapowaniem
+#  Paddle M1/M2 potrzebują InputPlumbera >= 0.79 (pierwsza wersja z mapowaniem
 #  RC73XA), a stock SteamOS 3.9.x ma 0.78.0. Dlatego InputPlumber 0.83.1
-#  siedzi jako overlay systemd-sysext nakladany na /usr przy boocie.
+#  siedzi jako overlay systemd-sysext nakładany na /usr przy boocie.
 #
-#  Po duzym update SteamOS (11.2026) paddle padly z trzech powodow, ktore
-#  ten straznik pilnuje:
+#  Po dużym update SteamOS (11.2026) paddle padły z trzech powodów, które
+#  ten strażnik pilnuje:
 #   1. nowy systemd skanuje /var/lib/extensions (oraz /etc/extensions,
-#      /run/extensions, /var/lib/extensions.mutable), a NIE juz starego
-#      /var/lib/extensions.systemd: sysekt trzeba przeniesc,
-#   2. plik release jest szukany w usr/lib/extension-release.d/ (sciezka
-#      upstream), a sama pakietowa sciezka usr/lib/extensions/systemd/
-#      extension-release.d/ juz nie wystarcza,
-#   3. release musi zawierac ID i VERSION_ID zgodne z /etc/os-release hosta
-#      (po kazdym update VERSION_ID hosta sie zmienia, wiec straznik
-#      przepisuje plik release przy kazdym uruchomieniu).
+#      /run/extensions, /var/lib/extensions.mutable), a NIE już starego
+#      /var/lib/extensions.systemd: sysext trzeba przenieść,
+#   2. plik release jest szukany w usr/lib/extension-release.d/ (ścieżka
+#      upstream), a sama pakietowa ścieżka usr/lib/extensions/systemd/
+#      extension-release.d/ już nie wystarcza,
+#   3. release musi zawierać ID i VERSION_ID zgodne z /etc/os-release hosta
+#      (po każdym update VERSION_ID hosta się zmienia, więc strażnik
+#      przepisuje plik release przy każdym uruchomieniu).
 #
-#  Naprawa jest w pelni offline: sysext zyje w /var (przezywa update SteamOS),
-#  straznik tylko dopasowuje metadate, robi merge i przywraca usluge.
+#  Naprawa jest w pełni offline: sysext żyje w /var (przeżywa update SteamOS),
+#  strażnik tylko dopasowuje metadatę, robi merge i przywraca usługę.
 #
-#  Fail-safe: nic nie instaluje z sieci; gdy sysextu brak, loguje blad
+#  Fail-safe: nic nie instaluje z sieci; gdy sysextu brak, loguje błąd
 #  i wychodzi bez ruszania systemu.
 #
-#  Uzycie:
+#  Użycie:
 #    ./paddle-m1m2-guard.sh status            raport (bez roota)
 #    sudo ./paddle-m1m2-guard.sh run          weryfikacja + naprawa
-#    sudo ./paddle-m1m2-guard.sh install      usluga + timer systemd
-#    sudo ./paddle-m1m2-guard.sh uninstall    usuniecie uslug (sysext zostaje)
+#    sudo ./paddle-m1m2-guard.sh install      usługa + timer systemd
+#    sudo ./paddle-m1m2-guard.sh uninstall    usunięcie usług (sysext zostaje)
 # =============================================================================
 
 set -u
@@ -52,7 +52,7 @@ STOCK_DB_DIR="/usr/lib/holo/pacmandb/local"
 OS_RELEASE="/etc/os-release"
 GOLDEN_VERSION="0.79"
 
-# Tryb mock (testy E2E): nadpisuje sciezki katalogiem testowym ze zmiennej MOCK.
+# Tryb mock (testy E2E): nadpisuje ścieżki katalogiem testowym ze zmiennej MOCK.
 if [ -n "${MOCK:-}" ]; then
   EXT_ROOT="$MOCK/var/lib/extensions"
   EXT_LEGACY_ROOT="$MOCK/var/lib/extensions.systemd"
@@ -118,11 +118,11 @@ ensure_release() {
   local ext_dir="$1" vid r
   vid="$(host_version_id)"
   if [ -z "$vid" ]; then
-    log WARN "Brak VERSION_ID w $OS_RELEASE; nie przepisuje pliku release."
+    log WARN "Brak VERSION_ID w $OS_RELEASE; nie przepisuję pliku release."
     return 1
   fi
   r="$ext_dir/$EXT_RELEASE_SUB"
-  mkdir -p "$ext_dir/usr/lib/extension-release.d" 2>/dev/null || { log ERROR "Nie moge utworzyc katalogu release w $ext_dir."; return 1; }
+  mkdir -p "$ext_dir/usr/lib/extension-release.d" 2>/dev/null || { log ERROR "Nie mogę utworzyć katalogu release w $ext_dir."; return 1; }
   printf 'ID=steamos\nVERSION_ID=%s\n' "$vid" > "$r"
   log OK "Release zgodny z hostem ($r: ID=steamos, VERSION_ID=$vid)."
 }
@@ -133,7 +133,7 @@ ensure_locations() {
     if mv "$EXT_LEGACY" "$EXT_PRIMARY" 2>> "$LOG_FILE"; then
       log OK "Przeniesiono sysext z $EXT_LEGACY do $EXT_PRIMARY (nowy systemd skanuje tylko /var/lib/extensions)."
     else
-      log ERROR "Nie udalo sie przeniesc $EXT_LEGACY do $EXT_PRIMARY."
+      log ERROR "Nie udało się przenieść $EXT_LEGACY do $EXT_PRIMARY."
       return 1
     fi
   fi
@@ -142,7 +142,7 @@ ensure_locations() {
     if cp -a "$EXT_USER" "$EXT_PRIMARY" 2>> "$LOG_FILE"; then
       log OK "Odtworzono sysext z kopii $EXT_USER (kopia, nie ruszam katalogu OpenGamepadUI)."
     else
-      log ERROR "Nie udalo sie skopiowac sysext z $EXT_USER."
+      log ERROR "Nie udało się skopiować sysext z $EXT_USER."
       return 1
     fi
   fi
@@ -154,21 +154,21 @@ cmd_run() {
   log INFO "--- paddle-m1m2-guard start ---"
   ensure_locations
   if [ ! -d "$EXT_PRIMARY" ]; then
-    log ERROR "Brak sysext inputplumber ($EXT_PRIMARY ani kopie w $EXT_LEGACY_ROOT / ~/.var). Offline nie da sie odtworzyc; patrz README (procedura pastaq)."
+    log ERROR "Brak sysext inputplumber ($EXT_PRIMARY ani kopii w $EXT_LEGACY_ROOT / ~/.var). Offline nie da się odtworzyć; patrz README (procedura pastaq)."
     return 1
   fi
 
   local want cur merged_now=0 d stock
   want="$(ip_version "$EXT_PRIMARY/usr/bin/$EXT_NAME")"
   if [ -z "$want" ]; then
-    log ERROR "Sysekt uszkodzony: brak dzialajacej binarki $EXT_PRIMARY/usr/bin/$EXT_NAME."
+    log ERROR "Sysext uszkodzony: brak działającej binarki $EXT_PRIMARY/usr/bin/$EXT_NAME."
     return 1
   fi
   if ! ver_ge "$want" "$GOLDEN_VERSION"; then
     log WARN "Sysext $want < $GOLDEN_VERSION (mapowanie paddle pod znakiem zapytania). Kontynuuje."
   fi
 
-  # 1. release zgodny z biezacym os-release (samonaprawa po zmianie VERSION_ID)
+  # 1. release zgodny z bieżącym os-release (samonaprawa po zmianie VERSION_ID)
   for d in "$EXT_PRIMARY" "$EXT_USER" "$EXT_LEGACY"; do
     [ -d "$d" ] && ensure_release "$d"
   done
@@ -176,34 +176,34 @@ cmd_run() {
   # 2. merge, gdy w /usr siedzi nie nasza wersja
   cur="$(ip_version "$BIN_MERGED")"
   if [ "$cur" != "$want" ]; then
-    log WARN "/usr/bin/$EXT_NAME to ${cur:-nic}, sysekt ma $want: robie merge."
+    log WARN "/usr/bin/$EXT_NAME to ${cur:-nic}, sysext ma $want: robię merge."
     systemd-sysext merge >> "$LOG_FILE" 2>&1
     cur="$(ip_version "$BIN_MERGED")"
     if [ "$cur" = "$want" ]; then
       merged_now=1
       log OK "Merge OK: $EXT_NAME $want na /usr."
     else
-      log ERROR "Merge nieudany mimo zgodnego release. Debug recznie: SYSTEMD_LOG_LEVEL=debug systemd-sysext merge"
+      log ERROR "Merge nieudany mimo zgodnego release. Debug ręcznie: SYSTEMD_LOG_LEVEL=debug systemd-sysext merge"
       return 1
     fi
   fi
 
-  # 3. po merge plik unita inputplumbera na dysku mogl sie zmienic
+  # 3. po merge plik unita inputplumbera na dysku mógł się zmienić
   if [ "$merged_now" = "1" ]; then
     systemctl daemon-reload >> "$LOG_FILE" 2>&1 || true
   fi
 
-  # 4. restart uslugi tylko gdy cos sie zmienilo albo nie dziala (nie ruszam w trakcie gry bez powodu)
+  # 4. restart usługi tylko gdy coś się zmieniło albo nie działa (nie ruszam w trakcie gry bez powodu)
   if [ "$merged_now" = "1" ] || ! systemctl is-active --quiet inputplumber.service; then
     systemctl restart inputplumber.service >> "$LOG_FILE" 2>&1 \
-      && log OK "Usluga inputplumber zrestartowana (dziala $want)." \
+      && log OK "Usługa inputplumber zrestartowana (działa $want)." \
       || { log ERROR "Restart inputplumber nieudany."; return 1; }
   fi
 
-  # 5. obserwacja: czy Valve dogonilo stock (wowczas sysext zaczyna maskowac nowszy stock)
+  # 5. obserwacja: czy Valve dogoniło stock (wówczas sysext zaczyna maskować nowszy stock)
   stock="$(stock_version)"
   if [ -n "$stock" ] && ver_ge "$stock" "$GOLDEN_VERSION"; then
-    log WARN "Stock inputplumber=$stock >= $GOLDEN_VERSION: sysext nie jest juz niezbedny i moze maskowac nowszy stock. Rozwaz: uninstall + rm -rf $EXT_PRIMARY + systemd-sysext unmerge (lub reboot)."
+    log WARN "Stock inputplumber=$stock >= $GOLDEN_VERSION: sysext nie jest już niezbędny i może maskować nowszy stock. Rozważ: uninstall + rm -rf $EXT_PRIMARY + systemd-sysext unmerge (lub reboot)."
   fi
 
   log OK "Paddle stack gotowy: inputplumber $want."
@@ -221,7 +221,7 @@ cmd_status() {
   echo "  kopia legacy:        $([ -d "$EXT_LEGACY" ] && echo obecna || echo brak) ($EXT_LEGACY)"
   echo "  kopia ~/.var:       $([ -d "$EXT_USER" ] && echo obecna || echo brak) ($EXT_USER)"
   if [ -n "$want" ]; then
-    [ "$cur" = "$want" ] && echo "Merge do /usr:         OK ($cur)" || echo "Merge do /usr:         BRAK (/usr ma ${cur:-nic}, sysekt ma $want)"
+    [ "$cur" = "$want" ] && echo "Merge do /usr:         OK ($cur)" || echo "Merge do /usr:         BRAK (/usr ma ${cur:-nic}, sysext ma $want)"
   else
     echo "Merge do /usr:         brak sysext do oceny"
   fi
@@ -229,7 +229,7 @@ cmd_status() {
   echo "Wymagane (paddle RC73XA): >= $GOLDEN_VERSION"
   echo "Release sysext:        $(tr '\n' ' ' < "$EXT_PRIMARY/$EXT_RELEASE_SUB" 2>/dev/null || echo brak)"
   echo "Host VERSION_ID:       $(host_version_id || echo brak) ($OS_RELEASE)"
-  echo "Usluga inputplumber:   $(systemctl is-active inputplumber.service 2>/dev/null)"
+  echo "Usługa inputplumber:   $(systemctl is-active inputplumber.service 2>/dev/null)"
   echo "Usługa guarda:         $([ -f "$UNIT_SERVICE" ] && echo OK || echo "nie zainstalowana (sudo $SELF_PATH install)")"
   echo "Timer:                  $([ -f "$UNIT_TIMER" ] && echo OK || echo BRAK)"
   echo "Log:                    $LOG_FILE"
@@ -244,7 +244,7 @@ cmd_install() {
 
   cat > "$UNIT_SERVICE" <<EOF
 [Unit]
-Description=paddle-m1m2-guard: straznik sysext InputPlumber (paddle M1/M2)
+Description=paddle-m1m2-guard: strażnik sysext InputPlumber (paddle M1/M2)
 After=systemd-sysext.service
 
 [Service]
@@ -268,7 +268,7 @@ EOF
 
   systemctl daemon-reload
   systemctl enable --now paddle-m1m2-guard.timer >/dev/null 2>&1
-  log OK "Instalacja uslugi paddle-m1m2-guard (timer: 2 min po starcie, potem co 6 h)."
+  log OK "Instalacja usługi paddle-m1m2-guard (timer: 2 min po starcie, potem co 6 h)."
   echo "Zainstalowane. Raport: $SELF_PATH status"
 }
 
@@ -277,8 +277,8 @@ cmd_uninstall() {
   systemctl disable --now paddle-m1m2-guard.timer >/dev/null 2>&1 || true
   rm -f "$UNIT_SERVICE" "$UNIT_TIMER"
   systemctl daemon-reload
-  log INFO "Uslugi paddle-m1m2-guard usuniete (sysext i log zostaly w $EXT_PRIMARY / $GUARD_BASE)."
-  echo "Uslugi usuniete."
+  log INFO "Usługi paddle-m1m2-guard usunięte (sysext i log zostały w $EXT_PRIMARY / $GUARD_BASE)."
+  echo "Usługi usunięte."
 }
 
 case "${1:-help}" in
