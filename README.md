@@ -6,6 +6,7 @@ Community utilities for the **ASUS ROG Xbox Ally X (RC73XA)** running SteamOS. R
 | --- | --- | --- |
 | **ROG Ally Audio** (Decky plugin) | Persistent EasyEffects speaker DSP chain with Balanced / Cinema / Loud / Bypass profiles, automatic KDE tray ↔ Gaming Mode handoff, switchable from the Quick Access Menu. | this README, below |
 | **Fingerprint reader FT9769** | Power-button fingerprint sensor working in sudo / polkit / KDE lock screen / Gaming Mode, plus a systemd guard that reinstalls the whole stack from the SteamOS repos after every SteamOS update. | [fingerprint-ft9769/](fingerprint-ft9769/) |
+| **Rear buttons M1/M2 (paddles)** | InputPlumber 0.83.1 as a systemd-sysext overlay restoring the RC73XA paddle mapping that stock SteamOS (0.78.0) lacks, with a guard that re-locates, re-pins and re-merges the extension after every SteamOS update. | [paddle-m1m2/](paddle-m1m2/) |
 
 ---
 
