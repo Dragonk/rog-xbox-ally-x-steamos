@@ -162,7 +162,9 @@ PlasmoidItem {
         onClicked: root.expanded = !root.expanded
         Kirigami.Icon {
             anchors.fill: parent
-            source: root.dspActive ? "audio-volume-high" : "audio-volume-muted"
+            // ikona suwakow EQ - sugeruje ulepszenie audio, nie glosnosc
+            source: "view-media-equalizer"
+            opacity: root.dspActive ? 1.0 : 0.45
             active: compact.containsMouse
         }
     }
