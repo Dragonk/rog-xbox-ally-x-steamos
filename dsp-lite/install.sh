@@ -45,7 +45,7 @@ systemctl --user enable --now ally-dsp.service ally-dsp-apply.path ally-dsp-appl
 echo "4/5 Decky plugin"
 if [ -d "$HOME/homebrew/plugins" ]; then
   sudo mkdir -p "$PLUGIN_DIR/dist"
-  sudo cp "$PLUGIN_SRC/plugin.json" "$PLUGIN_SRC/main.py" "$PLUGIN_DIR/"
+  sudo cp "$PLUGIN_SRC/plugin.json" "$PLUGIN_SRC/package.json" "$PLUGIN_SRC/main.py" "$PLUGIN_DIR/"
   sudo cp "$PLUGIN_SRC/dist/index.js" "$PLUGIN_DIR/dist/"
   sudo chown -R "$USER:$USER" "$PLUGIN_DIR"
   sudo systemctl restart plugin_loader || true
