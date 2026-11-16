@@ -162,10 +162,23 @@ PlasmoidItem {
         onClicked: root.expanded = !root.expanded
         Kirigami.Icon {
             anchors.fill: parent
-            // ikona ustawien dzwieku: czytelnie "konfiguracja audio", nie glosnosc
-            source: "preferences-desktop-sound"
+            // ikona symboliczna = kolor z motywu (jasna na ciemnym panelu i odwrotnie),
+            // glosniki odrozniaja ja od ikony glosnosci
+            source: "audio-speakers-symbolic"
             opacity: root.dspActive ? 1.0 : 0.45
             active: compact.containsMouse
+        }
+        Text {
+            // znacznik "ulepszenie", rysowany kolorem motywu
+            text: "+"
+            visible: root.dspActive
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            anchors.rightMargin: 0
+            anchors.bottomMargin: -Math.round(parent.height * 0.12)
+            font.bold: true
+            font.pixelSize: Math.max(8, Math.round(parent.height * 0.5))
+            color: Kirigami.Theme.textColor
         }
     }
 
