@@ -1,11 +1,18 @@
 // Ally Audio — panel Decky. Zależności: tylko globalny SP_REACT (SP_DFL w tej wersji
 // Decky nie istnieje). Hooki wyłącznie wewnątrz komponentów, zgodnie z regułami Reacta.
-const invoke = (name, args) => {
-  const api = window.DECKY_API || window.api || {};
-  if (api.callable) return api.callable(name)(...(args || []));
-  if (api.callPluginMethod) return api.callPluginMethod(name, args || []);
-  return Promise.reject(new Error("backend api unavailable"));
-};
+// Decky nie wystawia window.DECKY_API; kontrakt to wewnetrzne API loadera,
+// dokladnie takie, jakiego uzywa boiler-fingerprint-unlock:
+//   internal.connect(<wersja>, '<nazwa pluginu>').callable('<metoda>')
+const PLUGIN_NAME = "Ally Audio";
+
+function connectInternal() {
+  const internal = window.__DECKY_SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED_deckyLoaderAPIInit;
+  if (internal && internal.connect) {
+    try { return internal.connect(2, PLUGIN_NAME); }
+    catch (e) { return internal.connect(1, PLUGIN_NAME); }
+  }
+  return null;
+}
 
 const S = {
   pl: {
@@ -59,6 +66,7 @@ function Panel(props) {
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
 
+  const backend = props.backend;
   const run = useCallback((promise) => {
     setBusy(true);
     Promise.resolve(promise)
@@ -69,7 +77,8 @@ function Panel(props) {
 
   useEffect(() => {
     let alive = true;
-    const tick = () => invoke("get_state")
+    const tick = () => Promise.resolve()
+      .then(() => backend.get_state())
       .then((next) => { if (alive && next) { setState(next); setFailed(false); } })
       .catch(() => { if (alive) setFailed(true); });
     tick();
@@ -95,22 +104,22 @@ function Panel(props) {
         (state.enabled ? t.on : t.off) + " · " + (t.profiles[profile] || profile) + " / " + (t.voicings[voicing] || voicing))),
     h("div", { style: css.row },
       text(t.enhancement, t.enhancementDesc),
-      toggle(!!state.enabled, () => run(invoke("set_enabled", [!state.enabled])))),
+      toggle(!!state.enabled, () => run(backend.set_enabled(!state.enabled)))),
     h("div", { style: css.row },
       text(t.profile),
       h("select", {
         style: css.select, value: profile, disabled: busy, "data-ally-audio": "profile",
-        onChange: (e) => run(invoke("set_preset", [e.target.value, voicing])),
+        onChange: (e) => run(backend.set_preset(e.target.value, voicing)),
       }, Object.keys(t.profiles).map((k) => h("option", { key: k, value: k }, t.profiles[k])))),
     h("div", { style: css.row },
       text(t.voicing),
       h("select", {
         style: css.select, value: voicing, disabled: busy, "data-ally-audio": "voicing",
-        onChange: (e) => run(invoke("set_preset", [profile, e.target.value])),
+        onChange: (e) => run(backend.set_preset(profile, e.target.value)),
       }, Object.keys(t.voicings).map((k) => h("option", { key: k, value: k }, t.voicings[k])))),
     h("div", { style: css.row },
       text(t.mic, t.micDesc),
-      toggle(state.mic === "on", () => run(invoke("set_mic", [state.mic !== "on"])))),
+      toggle(state.mic === "on", () => run(backend.set_mic(state.mic !== "on")))),
     h("div", { style: css.row },
       h("span", null),
       h("button", { style: css.button, disabled: busy }, t.refresh)),
@@ -121,10 +130,19 @@ function Panel(props) {
 export default () => {
   const t = S[lang()];
   const React = SP_REACT;
+  const api = connectInternal();
+  const backend = api
+    ? {
+        get_state: api.callable("get_state"),
+        set_enabled: api.callable("set_enabled"),
+        set_preset: api.callable("set_preset"),
+        set_mic: api.callable("set_mic"),
+      }
+    : null;
   return {
     name: t.title,
     titleView: React.createElement("div", null, t.title),
-    content: React.createElement(Panel, { t }),
+    content: React.createElement(Panel, { t, backend }),
     icon: React.createElement("div", null, "♪"),
     onDismount() {},
   };
