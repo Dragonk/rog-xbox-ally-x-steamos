@@ -1,16 +1,10 @@
-// Ally Audio — panel Decky bez zależności: tylko globalny SP_REACT + własne elementy
-// (SP_DFL nie istnieje w tej wersji Decky). Język: PL/EN z locale Steam.
-const api = window.DECKY_API || window.api || {};
+// Ally Audio — panel Decky. Zależności: tylko globalny SP_REACT (SP_DFL w tej wersji
+// Decky nie istnieje). Hooki wyłącznie wewnątrz komponentów, zgodnie z regułami Reacta.
 const invoke = (name, args) => {
+  const api = window.DECKY_API || window.api || {};
   if (api.callable) return api.callable(name)(...(args || []));
   if (api.callPluginMethod) return api.callPluginMethod(name, args || []);
   return Promise.reject(new Error("backend api unavailable"));
-};
-const backend = {
-  state: () => invoke("get_state"),
-  setEnabled: (v) => invoke("set_enabled", [v]),
-  setPreset: (p, v) => invoke("set_preset", [p, v]),
-  setMic: (v) => invoke("set_mic", [v]),
 };
 
 const S = {
@@ -20,7 +14,7 @@ const S = {
     profile: "Profil", voicing: "Brzmienie",
     mic: "Ulepszenie mikrofonu", micDesc: "Tłumienie szumu i automatyczna regulacja wzmocnienia (WebRTC).",
     on: "włączone", off: "wyłączone", enable: "Włącz", disable: "Wyłącz",
-    refresh: "Odśwież", error: "Brak połączenia z backendem",
+    refresh: "Odśwież", error: "Brak połączenia z backendem", loading: "Wczytywanie…",
     profiles: { game: "Gra", dynamic: "Dynamiczny", movie: "Film", music: "Muzyka", voice: "Głos" },
     voicings: { balanced: "Zbalansowane", detailed: "Szczegółowe", warm: "Ciepłe" },
   },
@@ -30,7 +24,7 @@ const S = {
     profile: "Profile", voicing: "Voicing",
     mic: "Microphone enhancement", micDesc: "Noise suppression and automatic gain control (WebRTC).",
     on: "on", off: "off", enable: "Enable", disable: "Disable",
-    refresh: "Refresh", error: "No connection to the backend",
+    refresh: "Refresh", error: "No connection to the backend", loading: "Loading…",
     profiles: { game: "Game", dynamic: "Dynamic", movie: "Movie", music: "Music", voice: "Voice" },
     voicings: { balanced: "Balanced", detailed: "Detailed", warm: "Warm" },
   },
@@ -51,84 +45,87 @@ const css = {
   button: { padding: "6px 14px", borderRadius: "4px", background: "rgba(255,255,255,0.14)", color: "inherit", border: "none", cursor: "pointer", fontSize: "13px", whiteSpace: "nowrap" },
   select: { background: "rgba(255,255,255,0.10)", color: "inherit", border: "1px solid rgba(255,255,255,0.2)", borderRadius: "4px", padding: "5px 8px", fontSize: "13px" },
   dot: (on) => ({ display: "inline-block", width: "9px", height: "9px", borderRadius: "50%", marginRight: "8px", background: on ? "#1a9fff" : "rgba(255,255,255,0.3)" }),
+  error: { padding: "7px 12px", color: "#ff8a8a", fontSize: "12px" },
 };
 
-export default () => {
-  const t = S[lang()];
+// Komponent panelu: tu i tylko tu wolno używać hooków.
+function Panel(props) {
   const React = SP_REACT;
-  const h = React.createElement;
   const { useState, useEffect, useCallback } = React;
+  const t = props.t;
+  const h = React.createElement;
 
   const [state, setState] = useState({ enabled: false, preset: "movie/balanced", mic: "off" });
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
 
-  const apply = useCallback(async (fn) => {
+  const run = useCallback((promise) => {
     setBusy(true);
-    try { setState(await fn()); setFailed(false); } catch (e) { setFailed(true); }
-    setBusy(false);
+    Promise.resolve(promise)
+      .then((next) => { if (next) setState(next); setFailed(false); })
+      .catch(() => setFailed(true))
+      .then(() => setBusy(false));
   }, []);
 
-  const refresh = useCallback(() => apply(() => backend.state()), [apply]);
-
   useEffect(() => {
-    refresh();
-    const id = setInterval(refresh, 5000);
-    return () => clearInterval(id);
-  }, [refresh]);
+    let alive = true;
+    const tick = () => invoke("get_state")
+      .then((next) => { if (alive && next) { setState(next); setFailed(false); } })
+      .catch(() => { if (alive) setFailed(true); });
+    tick();
+    const id = setInterval(tick, 5000);
+    return () => { alive = false; clearInterval(id); };
+  }, []);
 
-  const [profile, voicing] = (state.preset || "movie/balanced").split("/");
+  const [profile, voicing] = String(state.preset || "movie/balanced").split("/");
 
   const text = (label, desc) => h("div", { style: css.text },
     h("span", { style: css.label }, label),
     desc ? h("span", { style: css.desc }, desc) : null);
 
-  const toggle = (isOn, onClick) => h("button", {
-    style: css.button, disabled: busy, onClick,
-  }, h("span", { style: css.dot(isOn) }), isOn ? t.disable : t.enable);
+  const toggle = (isOn, onClick) => h("button", { style: css.button, disabled: busy, onClick },
+    h("span", { style: css.dot(isOn) }), isOn ? t.disable : t.enable);
 
-  const Content = () => h("div", { style: css.section },
-    h("div", { style: css.header }, t.title),
+  return h("div", { style: css.section },
+    h("div", { style: css.header, "data-ally-audio": "header" }, t.title),
     h("div", { style: css.row },
       text(t.state),
       h("span", { style: { fontSize: "13px", opacity: 0.85 } },
         h("span", { style: css.dot(!!state.enabled) }),
         (state.enabled ? t.on : t.off) + " · " + (t.profiles[profile] || profile) + " / " + (t.voicings[voicing] || voicing))),
-
     h("div", { style: css.row },
       text(t.enhancement, t.enhancementDesc),
-      toggle(!!state.enabled, () => apply(() => backend.setEnabled(!state.enabled)))),
-
+      toggle(!!state.enabled, () => run(invoke("set_enabled", [!state.enabled])))),
     h("div", { style: css.row },
       text(t.profile),
       h("select", {
-        style: css.select, value: profile, disabled: busy,
-        onChange: (e) => apply(() => backend.setPreset(e.target.value, voicing)),
+        style: css.select, value: profile, disabled: busy, "data-ally-audio": "profile",
+        onChange: (e) => run(invoke("set_preset", [e.target.value, voicing])),
       }, Object.keys(t.profiles).map((k) => h("option", { key: k, value: k }, t.profiles[k])))),
-
     h("div", { style: css.row },
       text(t.voicing),
       h("select", {
-        style: css.select, value: voicing, disabled: busy,
-        onChange: (e) => apply(() => backend.setPreset(profile, e.target.value)),
+        style: css.select, value: voicing, disabled: busy, "data-ally-audio": "voicing",
+        onChange: (e) => run(invoke("set_preset", [profile, e.target.value])),
       }, Object.keys(t.voicings).map((k) => h("option", { key: k, value: k }, t.voicings[k])))),
-
     h("div", { style: css.row },
       text(t.mic, t.micDesc),
-      toggle(state.mic === "on", () => apply(() => backend.setMic(state.mic !== "on")))),
-
+      toggle(state.mic === "on", () => run(invoke("set_mic", [state.mic !== "on"])))),
     h("div", { style: css.row },
       h("span", null),
-      h("button", { style: css.button, disabled: busy, onClick: refresh }, t.refresh)),
-
-    failed ? h("div", { style: { ...css.row, color: "#ff8a8a", fontSize: "12px" } }, t.error) : null,
+      h("button", { style: css.button, disabled: busy }, t.refresh)),
+    failed ? h("div", { style: css.error }, t.error) : null,
   );
+}
 
+export default () => {
+  const t = S[lang()];
+  const React = SP_REACT;
   return {
     name: t.title,
-    titleView: h("div", null, t.title),
-    content: h(Content),
-    icon: h("div", null, "♪"),
+    titleView: React.createElement("div", null, t.title),
+    content: React.createElement(Panel, { t }),
+    icon: React.createElement("div", null, "♪"),
     onDismount() {},
   };
 };
