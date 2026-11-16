@@ -42,6 +42,29 @@ From the official ASUS `Default_settings.json` / tuning XML for this codec:
 | volume leveler | not enabled in this tuning | **off** (was wrongly on before) |
 | default profile | `movie` | `movie/balanced` |
 
+## One-command install
+
+```bash
+./install.sh
+```
+
+It installs the scripts into `~/ally-dsp-fix`, the systemd user units, the Decky panel
+(`ally-audio`) and the Plasma applet, then starts the chain. Requirements:
+
+* `~/ally-dsp-fix/presets/<profile>/<voicing>/{chain.conf,ir.irs}` — 15 presets
+* `~/ally-dsp-fix/lv2/lsp-plugins.lv2` — the LSP LV2 bundle
+
+Both are produced from the official ASUS "Dolby Atmos driver" package and are **not**
+redistributed in this repository (ASUS licensing). Generate them once with any DAX3
+converter (for example the Ally DSP plugin's setup), then copy them into `~/ally-dsp-fix`.
+
+## Decky panel
+
+`decky-plugin/` is a standalone, dependency-free Decky plugin (`api_version: 1`, plain
+ESM, no bundler): audio enhancement on/off, profile, voicing, microphone enhancement.
+It holds no audio state of its own — every action calls `dsp.sh`, so it can never
+overwrite the tuning.
+
 ## Files
 
 | Path | Purpose |

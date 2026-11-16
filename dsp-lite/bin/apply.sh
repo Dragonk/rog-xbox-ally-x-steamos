@@ -11,8 +11,18 @@
 # albo wezel nie zyje, zeby nie przerywac dzwieku bez potrzeby.
 set -u
 HOME_DIR=/home/deck
-SRC="$HOME_DIR/homebrew/data/Ally DSP/active/chain.conf"
 FIX="$HOME_DIR/ally-dsp-fix"
+# Zrodlo konfiguracji: WLASNA kopia presetow. Plugin Ally DSP sluzy tylko do
+# wygenerowania tuningu raz - pozniej nic go nie zmienia i nic nie moze nadpisac
+# ustawien uzytkownika.
+STATE_FILE="$FIX/preset.state"
+OWN_PRESETS="$FIX/presets"
+PLUGIN_ACTIVE="$HOME_DIR/homebrew/data/Ally DSP/active/chain.conf"
+if [ -d "$OWN_PRESETS" ] && [ -f "$STATE_FILE" ]; then
+  SRC="$OWN_PRESETS/$(cat "$STATE_FILE")/chain.conf"
+else
+  SRC="$PLUGIN_ACTIVE"
+fi
 OUT="$FIX/render.conf"
 TARGET=${ALLYDSP_TARGET:-alsa_output.pci-0000_64_00.6.analog-stereo}
 IN_NODE=allydsp_in
@@ -43,6 +53,14 @@ if [ ! -f "$OUT" ]; then
   stale=1
 elif [ "$SRC" -nt "$OUT" ]; then
   stale=1
+else
+  # Kluczowe: porownaj ZADANY preset z tym, co jest w render.conf. Kopie presetow
+  # maja stary mtime, wiec sam mtime nie wykryje przelaczenia.
+  desired=$(cat "$STATE_FILE" 2>/dev/null || echo "")
+  current=$(grep -o 'preset=[a-z/]*' "$OUT" 2>/dev/null | head -1 | cut -d= -f2)
+  if [ -n "$desired" ] && [ "$desired" != "$current" ]; then
+    stale=1
+  fi
 fi
 
 if [ "$stale" = 1 ]; then
@@ -53,6 +71,11 @@ text = open(src).read()
 text = text.replace('node.name = "effect_input.ally_dsp"', f'node.name = "{in_node}"')
 text = text.replace('node.name = "effect_output.ally_dsp"', f'node.name = "{out_node}"')
 text = text.replace('node.link-group = "ally_dsp"', 'node.link-group = "ally_dsp_render"')
+# IR bierzemy z katalogu presetu zrodlowego (wlasna kopia), nie z active/
+import os
+own_ir = os.path.join(os.path.dirname(src), "ir.irs")
+if os.path.isfile(own_ir):
+    text = re.sub(r'filename = "[^"]*ir\.irs"', f'filename = "{own_ir}"', text)
 text = text.replace("filter.smart = true", "filter.smart = false")
 text = re.sub(r"\n\s*filter\.smart\.target = \{.*?\}", "", text, flags=re.S)
 text = text.replace(f'playback.props = {{\n                    node.name = "{out_node}"',

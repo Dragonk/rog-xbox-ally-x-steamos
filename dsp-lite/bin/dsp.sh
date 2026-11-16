@@ -73,9 +73,12 @@ case "${1:-status}" in
   preset)
     prof="${2:-}"; voix="${3:-}"
     if [ -z "$prof" ] || [ -z "$voix" ]; then echo "uzycie: dsp preset <game|dynamic|movie|music|voice> <balanced|detailed|warm>" >&2; exit 1; fi
-    P="/home/deck/homebrew/plugins/Ally DSP"
-    ( cd "$P" && PYTHONPATH=py_modules ALLYDSP_PLUGIN_DIR="$P" DECKY_USER_HOME=/home/deck \
-      DECKY_USER=deck timeout 120 python3 -m allydsp.cli apply "$prof" "$voix" --save >/dev/null 2>&1 )
+    # Wlasny stan + wlasna kopia presetu: plugin Ally DSP nie jest dotykany,
+    # wiec nie moze nadpisac ustawien uzytkownika.
+    if [ ! -f "$FIX/presets/$prof/$voix/chain.conf" ]; then
+      echo "brak presetu $prof/$voix" >&2; exit 1
+    fi
+    printf '%s/%s\n' "$prof" "$voix" > "$FIX/preset.state"
     apply
     echo "$(t 'Preset' 'Preset'): $prof / $voix"
     ;;
