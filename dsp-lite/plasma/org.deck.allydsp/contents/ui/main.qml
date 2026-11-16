@@ -162,8 +162,8 @@ PlasmoidItem {
         onClicked: root.expanded = !root.expanded
         Kirigami.Icon {
             anchors.fill: parent
-            // ikona suwakow EQ - sugeruje ulepszenie audio, nie glosnosc
-            source: "view-media-equalizer"
+            // ikona ustawien dzwieku: czytelnie "konfiguracja audio", nie glosnosc
+            source: "preferences-desktop-sound"
             opacity: root.dspActive ? 1.0 : 0.45
             active: compact.containsMouse
         }

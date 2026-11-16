@@ -6,7 +6,7 @@
     "Name[pl]": "Ally DSP",
     "Description": "Toggle and check the Dolby tuning for the ROG Xbox Ally X speakers",
     "Description[pl]": "Wlaczanie i podglad tuningu Dolby dla glosnikow ROG Xbox Ally X",
-    "Icon": "view-media-equalizer",
+    "Icon": "preferences-desktop-sound",
     "Version": "1.0",
     "License": "MIT",
     "Category": "Multimedia",
