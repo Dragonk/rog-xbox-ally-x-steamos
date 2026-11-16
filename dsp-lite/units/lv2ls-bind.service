@@ -1,0 +1,23 @@
+# Expose lv2ls to the Ally DSP backend without writing to the immutable /usr image.
+#
+# /usr is a read-only sysext overlay (lowerdir=…, no upperdir), so neither
+# `steamos-readonly disable` nor `mount -o remount,rw /usr` can make
+# /usr/local/bin writable. Mounts do not write to the filesystem, so a bind mount
+# provides the tool while leaving the image byte-for-byte untouched.
+#
+# Needed because the plugin hands its subprocesses PATH=/usr/local/bin:/usr/bin:/bin
+# and SteamOS 3.9.5 ships liblilv but not the lilv CLI, so its LV2 gate fails.
+[Unit]
+Description=Expose lv2ls (liblilv) to /usr/local/bin for Ally DSP
+DefaultDependencies=no
+After=local-fs.target
+Before=pipewire.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/bin/mount --bind /home/deck/.local/lv2bin /usr/local/bin
+ExecStop=/bin/umount /usr/local/bin
+
+[Install]
+WantedBy=multi-user.target

@@ -1,3 +1,13 @@
+# Nowa wersja audio (bez EasyEffects)
+
+**Aktualny stos audio to `dsp-lite/`** — łańcuch Dolby na natywnym PipeWire, bez EasyEffects,
+z jednym appletem trayu (audio + mikrofon) i zgodnością z domyślnym profilem Windows (`movie`).
+Szczegóły, pomiary i instrukcja: [`dsp-lite/README.md`](dsp-lite/README.md).
+
+Poniższa treść opisuje **starszą wersję** (EasyEffects) i jest zachowana historycznie.
+
+---
+
 # ROG Xbox Ally X on SteamOS
 
 Community utilities for the **ASUS ROG Xbox Ally X (RC73XA)** running SteamOS. Real-device tested (SteamOS 3.8.x–3.9.5, BIOS RC73XA.319). Independent project, not affiliated with ASUS, Republic of Gamers, Valve or Dolby.

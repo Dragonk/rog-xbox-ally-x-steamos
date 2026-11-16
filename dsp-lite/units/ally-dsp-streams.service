@@ -1,0 +1,13 @@
+[Unit]
+Description=Ally DSP: kieruj strumienie aplikacji przez lancuch (glosnosc zostaje na glosniku)
+After=pipewire.service wireplumber.service
+BindsTo=pipewire.service
+
+[Service]
+Type=simple
+ExecStart=/home/deck/ally-dsp-fix/streams.sh
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=default.target

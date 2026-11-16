@@ -1,0 +1,65 @@
+#!/usr/bin/env python3
+"""lv2ls replacement that calls liblilv directly.
+
+SteamOS ships liblilv (PipeWire needs it) but not the lilv CLI tools, so the
+Ally DSP hardware check cannot see the bundled LV2 plugins. This does exactly
+what lv2ls does: load every bundle from LV2_PATH through liblilv and print one
+plugin URI per line.
+"""
+from __future__ import annotations
+
+import ctypes
+import ctypes.util
+import os
+import sys
+
+LILV = ctypes.util.find_library("lilv-0")
+if not LILV:
+    sys.stderr.write("lv2ls: liblilv-0 not found\n")
+    raise SystemExit(1)
+
+lib = ctypes.CDLL(LILV)
+lib.lilv_world_new.restype = ctypes.c_void_p
+lib.lilv_world_load_all.argtypes = [ctypes.c_void_p]
+lib.lilv_world_get_all_plugins.argtypes = [ctypes.c_void_p]
+lib.lilv_world_get_all_plugins.restype = ctypes.c_void_p
+lib.lilv_world_free.argtypes = [ctypes.c_void_p]
+lib.lilv_plugins_begin.argtypes = [ctypes.c_void_p]
+lib.lilv_plugins_begin.restype = ctypes.c_void_p
+lib.lilv_plugins_get.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
+lib.lilv_plugins_get.restype = ctypes.c_void_p
+lib.lilv_plugins_next.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
+lib.lilv_plugins_next.restype = ctypes.c_void_p
+lib.lilv_plugins_is_end.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
+lib.lilv_plugins_is_end.restype = ctypes.c_bool
+lib.lilv_plugin_get_uri.argtypes = [ctypes.c_void_p]
+lib.lilv_plugin_get_uri.restype = ctypes.c_void_p
+lib.lilv_node_as_string.argtypes = [ctypes.c_void_p]
+lib.lilv_node_as_string.restype = ctypes.c_char_p
+
+
+def main() -> int:
+    world = lib.lilv_world_new()
+    if not world:
+        sys.stderr.write("lv2ls: lilv_world_new failed\n")
+        return 1
+    try:
+        lib.lilv_world_load_all(world)
+        plugins = lib.lilv_world_get_all_plugins(world)
+        if not plugins:
+            return 1
+        it = lib.lilv_plugins_begin(plugins)
+        while not lib.lilv_plugins_is_end(plugins, it):
+            plugin = lib.lilv_plugins_get(plugins, it)
+            if plugin:
+                uri = lib.lilv_node_as_string(lib.lilv_plugin_get_uri(plugin))
+                if uri:
+                    print(uri.decode())
+            it = lib.lilv_plugins_next(plugins, it)
+    finally:
+        lib.lilv_world_free(world)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

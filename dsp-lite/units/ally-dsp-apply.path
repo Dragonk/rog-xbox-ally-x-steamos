@@ -1,0 +1,9 @@
+[Unit]
+Description=Ally DSP: reaguj na zmiane presetu w pluginie
+
+[Path]
+PathChanged=/home/deck/homebrew/data/Ally DSP/active/chain.conf
+Unit=ally-dsp-apply.service
+
+[Install]
+WantedBy=default.target

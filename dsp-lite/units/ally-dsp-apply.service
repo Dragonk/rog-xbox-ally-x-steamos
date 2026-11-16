@@ -1,0 +1,7 @@
+[Unit]
+Description=Ally DSP: przelicz render.conf z aktualnego presetu pluginu
+After=pipewire.service wireplumber.service
+
+[Service]
+Type=oneshot
+ExecStart=/home/deck/ally-dsp-fix/apply.sh
