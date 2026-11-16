@@ -1,10 +1,12 @@
-# Nowa wersja audio (bez EasyEffects)
+# Audio stack (no EasyEffects)
 
-**Aktualny stos audio to `dsp-lite/`** — łańcuch Dolby na natywnym PipeWire, bez EasyEffects,
-z jednym appletem trayu (audio + mikrofon) i zgodnością z domyślnym profilem Windows (`movie`).
-Szczegóły, pomiary i instrukcja: [`dsp-lite/README.md`](dsp-lite/README.md).
+**The current audio stack is `dsp-lite/`** — a Dolby chain on native PipeWire, without
+EasyEffects, with a single tray applet covering both playback and microphone, and
+parity with the Windows default profile (`movie`).
+Details, measurements and usage: [`dsp-lite/README.md`](dsp-lite/README.md).
 
-Poniższa treść opisuje **starszą wersję** (EasyEffects) i jest zachowana historycznie.
+Everything below describes the **older EasyEffects-based version** and is kept for
+history only.
 
 ---
 
