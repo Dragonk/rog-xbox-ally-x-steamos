@@ -1,149 +1,100 @@
-// Ally Audio — panel Decky. Zależności: tylko globalny SP_REACT (SP_DFL w tej wersji
-// Decky nie istnieje). Hooki wyłącznie wewnątrz komponentów, zgodnie z regułami Reacta.
-// Decky nie wystawia window.DECKY_API; kontrakt to wewnetrzne API loadera,
-// dokladnie takie, jakiego uzywa boiler-fingerprint-unlock:
-//   internal.connect(<wersja>, '<nazwa pluginu>').callable('<metoda>')
-const PLUGIN_NAME = "Ally Audio";
-
-function connectInternal() {
-  const internal = window.__DECKY_SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED_deckyLoaderAPIInit;
-  if (internal && internal.connect) {
-    try { return internal.connect(2, PLUGIN_NAME); }
-    catch (e) { return internal.connect(1, PLUGIN_NAME); }
-  }
-  return null;
+const manifest = {"name":"Ally Audio"};
+const API_VERSION = 2;
+const internalAPIConnection = window.__DECKY_SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED_deckyLoaderAPIInit;
+if (!internalAPIConnection) {
+    throw new Error('[@decky/api]: Failed to connect to the loader as as the loader API was not initialized. This is likely a bug in Decky Loader.');
 }
+let api;
+try {
+    api = internalAPIConnection.connect(API_VERSION, manifest.name);
+}
+catch {
+    api = internalAPIConnection.connect(1, manifest.name);
+    console.warn(`[@decky/api] Requested API version ${API_VERSION} but the running loader only supports version 1. Some features may not work.`);
+}
+if (api._version != API_VERSION) {
+    console.warn(`[@decky/api] Requested API version ${API_VERSION} but the running loader only supports version ${api._version}. Some features may not work.`);
+}
+const callable = api.callable;
+const definePlugin = (fn) => {
+    return (...args) => {
+        return fn(...args);
+    };
+};
 
+const getState = callable("get_state");
+const setEnabled = callable("set_enabled");
+const setPreset = callable("set_preset");
+const setMic = callable("set_mic");
 const S = {
-  pl: {
-    title: "Ally Audio", state: "Stan",
-    enhancement: "Ulepszenie audio", enhancementDesc: "Tuning Dolby dla głośników. Wyłączone = dźwięk bez przetwarzania.",
-    profile: "Profil", voicing: "Brzmienie",
-    mic: "Ulepszenie mikrofonu", micDesc: "Tłumienie szumu i automatyczna regulacja wzmocnienia (WebRTC).",
-    on: "włączone", off: "wyłączone", enable: "Włącz", disable: "Wyłącz",
-    refresh: "Odśwież", error: "Brak połączenia z backendem", loading: "Wczytywanie…",
-    profiles: { game: "Gra", dynamic: "Dynamiczny", movie: "Film", music: "Muzyka", voice: "Głos" },
-    voicings: { balanced: "Zbalansowane", detailed: "Szczegółowe", warm: "Ciepłe" },
-  },
-  en: {
-    title: "Ally Audio", state: "Status",
-    enhancement: "Audio enhancement", enhancementDesc: "Dolby tuning for the speakers. Off = unprocessed sound.",
-    profile: "Profile", voicing: "Voicing",
-    mic: "Microphone enhancement", micDesc: "Noise suppression and automatic gain control (WebRTC).",
-    on: "on", off: "off", enable: "Enable", disable: "Disable",
-    refresh: "Refresh", error: "No connection to the backend", loading: "Loading…",
-    profiles: { game: "Game", dynamic: "Dynamic", movie: "Movie", music: "Music", voice: "Voice" },
-    voicings: { balanced: "Balanced", detailed: "Detailed", warm: "Warm" },
-  },
+    pl: {
+        title: "Ally Audio",
+        state: "Stan",
+        enhancement: "Ulepszenie audio",
+        enhancementDesc: "Tuning Dolby dla głośników. Wyłączone = dźwięk bez przetwarzania.",
+        profile: "Profil",
+        voicing: "Brzmienie",
+        mic: "Ulepszenie mikrofonu",
+        micDesc: "Tłumienie szumu i automatyczna regulacja wzmocnienia (WebRTC).",
+        on: "włączone",
+        off: "wyłączone",
+        refresh: "Odśwież",
+        error: "Brak połączenia z backendem",
+        profiles: { game: "Gra", dynamic: "Dynamiczny", movie: "Film", music: "Muzyka", voice: "Głos" },
+        voicings: { balanced: "Zbalansowane", detailed: "Szczegółowe", warm: "Ciepłe" },
+    },
+    en: {
+        title: "Ally Audio",
+        state: "Status",
+        enhancement: "Audio enhancement",
+        enhancementDesc: "Dolby tuning for the speakers. Off = unprocessed sound.",
+        profile: "Profile",
+        voicing: "Voicing",
+        mic: "Microphone enhancement",
+        micDesc: "Noise suppression and automatic gain control (WebRTC).",
+        on: "on",
+        off: "off",
+        refresh: "Refresh",
+        error: "No connection to the backend",
+        profiles: { game: "Game", dynamic: "Dynamic", movie: "Movie", music: "Music", voice: "Voice" },
+        voicings: { balanced: "Balanced", detailed: "Detailed", warm: "Warm" },
+    },
 };
-
-function lang() {
-  try { return (navigator.language || "en").toLowerCase().startsWith("pl") ? "pl" : "en"; }
-  catch (e) { return "en"; }
+const t = (navigator.language || "en").toLowerCase().startsWith("pl") ? S.pl : S.en;
+function Content() {
+    const [state, setState] = SP_REACT.useState(null);
+    const [busy, setBusy] = SP_REACT.useState(false);
+    const [failed, setFailed] = SP_REACT.useState(false);
+    const refresh = () => {
+        setBusy(true);
+        getState()
+            .then((next) => { setState(next); setFailed(false); })
+            .catch(() => setFailed(true))
+            .finally(() => setBusy(false));
+    };
+    SP_REACT.useEffect(() => {
+        refresh();
+        const id = setInterval(refresh, 5000);
+        return () => clearInterval(id);
+    }, []);
+    const act = (p) => {
+        setBusy(true);
+        p.then((next) => { setState(next); setFailed(false); })
+            .catch(() => setFailed(true))
+            .finally(() => setBusy(false));
+    };
+    const [profile, voicing] = ((state && state.preset) || "movie/balanced").split("/");
+    return (SP_JSX.jsxs(DFL.PanelSection, { title: t.title, children: [SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.Field, { label: t.state, children: state === null
+                        ? "…"
+                        : (state.enabled ? t.on : t.off) + " · " + (t.profiles[profile] || profile) + " / " + (t.voicings[voicing] || voicing) }) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.ToggleField, { label: t.enhancement, description: t.enhancementDesc, checked: !!(state && state.enabled), disabled: busy, onChange: (value) => act(setEnabled(value)) }) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.DropdownItem, { label: t.profile, rgOptions: Object.keys(t.profiles).map((k) => ({ data: k, label: t.profiles[k] })), selectedOption: profile, disabled: busy, onChange: (option) => act(setPreset(option.data, voicing)) }) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.DropdownItem, { label: t.voicing, rgOptions: Object.keys(t.voicings).map((k) => ({ data: k, label: t.voicings[k] })), selectedOption: voicing, disabled: busy, onChange: (option) => act(setPreset(profile, option.data)) }) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.ToggleField, { label: t.mic, description: t.micDesc, checked: !!state && state.mic === "on", disabled: busy, onChange: (value) => act(setMic(value)) }) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.ButtonItem, { layout: "below", onClick: refresh, disabled: busy, children: t.refresh }) }), failed ? (SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.Field, { label: t.error, children: "" }) })) : null] }));
 }
-
-const css = {
-  section: { padding: "2px 0 10px" },
-  header: { fontSize: "12px", fontWeight: 600, textTransform: "uppercase", opacity: 0.6, padding: "6px 12px" },
-  row: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px", padding: "7px 12px" },
-  text: { display: "flex", flexDirection: "column", minWidth: 0 },
-  label: { fontSize: "14px" },
-  desc: { fontSize: "11px", opacity: 0.6, marginTop: "2px" },
-  button: { padding: "6px 14px", borderRadius: "4px", background: "rgba(255,255,255,0.14)", color: "inherit", border: "none", cursor: "pointer", fontSize: "13px", whiteSpace: "nowrap" },
-  select: { background: "rgba(255,255,255,0.10)", color: "inherit", border: "1px solid rgba(255,255,255,0.2)", borderRadius: "4px", padding: "5px 8px", fontSize: "13px" },
-  dot: (on) => ({ display: "inline-block", width: "9px", height: "9px", borderRadius: "50%", marginRight: "8px", background: on ? "#1a9fff" : "rgba(255,255,255,0.3)" }),
-  error: { padding: "7px 12px", color: "#ff8a8a", fontSize: "12px" },
-};
-
-// Komponent panelu: tu i tylko tu wolno używać hooków.
-function Panel(props) {
-  const React = SP_REACT;
-  const { useState, useEffect, useCallback } = React;
-  const t = props.t;
-  const h = React.createElement;
-
-  const [state, setState] = useState({ enabled: false, preset: "movie/balanced", mic: "off" });
-  const [busy, setBusy] = useState(false);
-  const [failed, setFailed] = useState(false);
-
-  const backend = props.backend;
-  const run = useCallback((promise) => {
-    setBusy(true);
-    Promise.resolve(promise)
-      .then((next) => { if (next) setState(next); setFailed(false); })
-      .catch(() => setFailed(true))
-      .then(() => setBusy(false));
-  }, []);
-
-  useEffect(() => {
-    let alive = true;
-    const tick = () => Promise.resolve()
-      .then(() => backend.get_state())
-      .then((next) => { if (alive && next) { setState(next); setFailed(false); } })
-      .catch(() => { if (alive) setFailed(true); });
-    tick();
-    const id = setInterval(tick, 5000);
-    return () => { alive = false; clearInterval(id); };
-  }, []);
-
-  const [profile, voicing] = String(state.preset || "movie/balanced").split("/");
-
-  const text = (label, desc) => h("div", { style: css.text },
-    h("span", { style: css.label }, label),
-    desc ? h("span", { style: css.desc }, desc) : null);
-
-  const toggle = (isOn, onClick) => h("button", { style: css.button, disabled: busy, onClick },
-    h("span", { style: css.dot(isOn) }), isOn ? t.disable : t.enable);
-
-  return h("div", { style: css.section },
-    h("div", { style: css.header, "data-ally-audio": "header" }, t.title),
-    h("div", { style: css.row },
-      text(t.state),
-      h("span", { style: { fontSize: "13px", opacity: 0.85 } },
-        h("span", { style: css.dot(!!state.enabled) }),
-        (state.enabled ? t.on : t.off) + " · " + (t.profiles[profile] || profile) + " / " + (t.voicings[voicing] || voicing))),
-    h("div", { style: css.row },
-      text(t.enhancement, t.enhancementDesc),
-      toggle(!!state.enabled, () => run(backend.set_enabled(!state.enabled)))),
-    h("div", { style: css.row },
-      text(t.profile),
-      h("select", {
-        style: css.select, value: profile, disabled: busy, "data-ally-audio": "profile",
-        onChange: (e) => run(backend.set_preset(e.target.value, voicing)),
-      }, Object.keys(t.profiles).map((k) => h("option", { key: k, value: k }, t.profiles[k])))),
-    h("div", { style: css.row },
-      text(t.voicing),
-      h("select", {
-        style: css.select, value: voicing, disabled: busy, "data-ally-audio": "voicing",
-        onChange: (e) => run(backend.set_preset(profile, e.target.value)),
-      }, Object.keys(t.voicings).map((k) => h("option", { key: k, value: k }, t.voicings[k])))),
-    h("div", { style: css.row },
-      text(t.mic, t.micDesc),
-      toggle(state.mic === "on", () => run(backend.set_mic(state.mic !== "on")))),
-    h("div", { style: css.row },
-      h("span", null),
-      h("button", { style: css.button, disabled: busy }, t.refresh)),
-    failed ? h("div", { style: css.error }, t.error) : null,
-  );
-}
-
-export default () => {
-  const t = S[lang()];
-  const React = SP_REACT;
-  const api = connectInternal();
-  const backend = api
-    ? {
-        get_state: api.callable("get_state"),
-        set_enabled: api.callable("set_enabled"),
-        set_preset: api.callable("set_preset"),
-        set_mic: api.callable("set_mic"),
-      }
-    : null;
-  return {
+var index = definePlugin(() => ({
     name: t.title,
-    titleView: React.createElement("div", null, t.title),
-    content: React.createElement(Panel, { t, backend }),
-    icon: React.createElement("div", null, "♪"),
-    onDismount() {},
-  };
-};
+    titleView: SP_JSX.jsx("div", { className: DFL.staticClasses.Title, children: t.title }),
+    content: SP_JSX.jsx(Content, {}),
+    icon: (SP_JSX.jsxs("svg", { width: "1em", height: "1em", viewBox: "0 0 24 24", fill: "currentColor", "aria-hidden": "true", children: [SP_JSX.jsx("path", { d: "M4 9h3l4-3v12l-4-3H4z" }), SP_JSX.jsx("path", { d: "M15 8.5a4.5 4.5 0 0 1 0 7v-1.8a2.7 2.7 0 0 0 0-3.4z" }), SP_JSX.jsx("path", { d: "M18.5 6a8 8 0 0 1 0 12v-1.8a6.2 6.2 0 0 0 0-8.4z" }), SP_JSX.jsx("path", { d: "M11.6 4.2h1.4v2h-1.4z", transform: "rotate(45 12.3 5.2)" })] })),
+    onDismount() { },
+}));
+
+export { index as default };
+//# sourceMappingURL=index.js.map

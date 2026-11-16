@@ -58,10 +58,27 @@ LGPL-3.0.
 
 ## Decky panel
 
-`decky-plugin/` is a standalone, dependency-free Decky plugin (`api_version: 1`, plain
-ESM, no bundler): audio enhancement on/off, profile, voicing, microphone enhancement.
-It holds no audio state of its own — every action calls `dsp.sh`, so it can never
-overwrite the tuning.
+`decky-plugin/` is a Decky plugin (`api_version: 1`) with audio enhancement on/off, profile,
+voicing and microphone enhancement. It holds no audio state of its own — every action calls
+`dsp.sh`, so it can never overwrite the tuning.
+
+The panel is written in TSX and built with the **official Decky toolchain**
+(`@decky/rollup`, `@decky/ui`, `@decky/api`), so it renders with Decky's own
+`PanelSection` / `ToggleField` / `DropdownItem`. That is also what makes it navigable with
+the controller: focus comes from Decky's focus system, not from custom markup. The built
+`dist/index.js` is committed, so installing the plugin never needs Node on the device.
+
+```bash
+cd decky-plugin
+npm install          # once (build + tests only)
+npm run build        # src/index.tsx -> dist/index.js
+npm test             # 24 assertions against the shipped bundle, PL and EN
+```
+
+The panel test mounts the real bundle with React, stubs only the `@decky/ui` component
+boundary (that library imports Steam's webpack container, so it cannot load outside the
+Steam client), and checks the loader API contract, every control, the backend calls and
+both localizations. Details: [`decky-plugin/test/README.md`](decky-plugin/test/README.md).
 
 ## Files
 
@@ -72,7 +89,7 @@ overwrite the tuning.
 | `bin/mic.sh` | microphone: WebRTC noise suppression + AGC + high-pass (`module-echo-cancel`) |
 | `bin/streams.sh` | moves new app streams into the chain |
 | `bin/lv2ls` | liblilv-based `lv2ls` replacement (SteamOS ships liblilv, not the CLI) |
-| `units/` | user units: apply path+timer, mic, streams; plus the `lv2ls` bind-mount unit |
+| `units/` | user units: `ally-dsp`, apply path+timer, mic, streams |
 | `plasma/org.deck.allydsp` | Plasma 6 applet: one tray icon for audio + microphone, PL/EN from locale |
 
 ## Usage
