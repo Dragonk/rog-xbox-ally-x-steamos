@@ -10,8 +10,19 @@ FIX="$HOME/ally-dsp-fix"
 PLUGIN_SRC="$SELF/decky-plugin"
 PLUGIN_DIR="$HOME/homebrew/plugins/ally-audio"
 
-[ -d "$FIX/presets" ] || { echo "missing $FIX/presets (15 presets). See dsp-lite/README.md" >&2; exit 1; }
-[ -d "$FIX/lv2/lsp-plugins.lv2" ] || { echo "missing $FIX/lv2/lsp-plugins.lv2 (LSP bundle)" >&2; exit 1; }
+# Zasoby sa w repo: kopiujemy je, wiec instalacja nie wymaga zadnego kroku recznego.
+install -d "$FIX"
+if [ -d "$SELF/presets" ]; then
+  rm -rf "$FIX/presets"; cp -a "$SELF/presets" "$FIX/presets"
+else
+  [ -d "$FIX/presets" ] || { echo "missing presets (see dsp-lite/NOTICE.md)" >&2; exit 1; }
+fi
+if [ -d "$SELF/lv2/lsp-plugins.lv2" ]; then
+  rm -rf "$FIX/lv2"; cp -a "$SELF/lv2" "$FIX/lv2"
+else
+  [ -d "$FIX/lv2/lsp-plugins.lv2" ] || { echo "missing LSP bundle" >&2; exit 1; }
+fi
+[ -f "$FIX/preset.state" ] || echo "movie/balanced" > "$FIX/preset.state"
 
 echo "1/5 scripts"
 install -d "$FIX"

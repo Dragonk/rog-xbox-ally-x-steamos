@@ -48,15 +48,13 @@ From the official ASUS `Default_settings.json` / tuning XML for this codec:
 ./install.sh
 ```
 
-It installs the scripts into `~/ally-dsp-fix`, the systemd user units, the Decky panel
-(`ally-audio`) and the Plasma applet, then starts the chain. Requirements:
+Nothing manual: the presets (`presets/`) and the LSP bundle (`lv2/`) ship in this
+repository and are copied into `~/ally-dsp-fix` by the installer. After it finishes you have
+a working chain, the Decky panel and the tray applet.
 
-* `~/ally-dsp-fix/presets/<profile>/<voicing>/{chain.conf,ir.irs}` — 15 presets
-* `~/ally-dsp-fix/lv2/lsp-plugins.lv2` — the LSP LV2 bundle
-
-Both are produced from the official ASUS "Dolby Atmos driver" package and are **not**
-redistributed in this repository (ASUS licensing). Generate them once with any DAX3
-converter (for example the Ally DSP plugin's setup), then copy them into `~/ally-dsp-fix`.
+Provenance and licensing of those two directories: [`NOTICE.md`](NOTICE.md) — the presets
+are generated from the official ASUS package (ASUS/Dolby tuning values), the LSP bundle is
+LGPL-3.0.
 
 ## Decky panel
 
