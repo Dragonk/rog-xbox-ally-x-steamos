@@ -132,7 +132,7 @@ PlasmoidItem {
             onTriggered: root.setPreset("voice", root.curVoicing())
         },
         PlasmaCore.Action {
-            text: root.t("Voicing", "Voicing")
+            text: root.t("Brzmienie", "Voicing")
             enabled: false
         },
         PlasmaCore.Action {
@@ -231,7 +231,7 @@ PlasmoidItem {
             }
         }
         QQC2.Label {
-            text: root.t("Voicing", "Voicing")
+            text: root.t("Brzmienie", "Voicing")
             font.bold: true
         }
         GridLayout {
